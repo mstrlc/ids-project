@@ -10,54 +10,58 @@
 \pagestyle{empty}
  
 \begin{document}
-{
-\noindent
-\Large{\textbf{IDS 2022/2023\,--\,1.~část projektu}} \\ \normalsize
-Adam Mrkva (\verb|xmrkva04|), Matyáš Strelec (\verb|xstrel03|)}
-
+    \noindent
+    \Large{\textbf{IDS 2022/2023\,--\,1.~část projektu}} \\
+    \normalsize
+    Adam Mrkva (\verb|xmrkva04|), Matyáš Strelec (\verb|xstrel03|)
+    
 \begin{multicols*}{2}
 
-\section{Zadání}
+    \section{Zadání}
+    
+        \subsection*{Rezervace letenek}
+        
+            Vaším úkolem je navrhnout webovou aplikaci pro rezervaci letenek. Systém musí uživateli umožnit specifikovat požadavek pomocí místa odletu a příletu, data, času, třídy, letecké společnosti apod. Jedno letadlo může létat na více letech, stejně tak mezi dvěmi destinacemi může létat více letadel různých společností.
+            
+            Zákazník si rezervuje letenku, která může být na několik letů, i různých společností (např. letenka Praha $\rightarrow$ San Francisco s lety Praha $\rightarrow$ Londýn ČSA, Londýn $\rightarrow$ San Francisco British Airways). Systém musí umožnit klientovi tisk letového itineráře, který obsahuje informace o dobách příletů a odletů na jednotlivých letištích.
+            
+            Každý typ letadla má různý počet sedadel a jejich rozvržení do tříd. Nemodelujte jednotlivá sedadla. Rezervací může klient zamluvit i více míst v jednom letu. Technická mezipřistání modelovat nemusíte. Systém musí evidovat, která společnost kdy, odkud a kam létá. Cena sedadla v dané třídě může být u každé společnosti jiná, cena letenky je dána součtem cen všech rezervovaných sedadel na všech letech. Pokud klient rezervovanou letenku včas nezaplatí, rezervace se z databáze smaže. 
 
-\subsection*{Rezervace letenek}
+    \section{Popis datového modelu}
+    
+        \subsection{ER diagram}
+        
+            ER diagram obsahuje tyto entity:
 
-Vaším úkolem je navrhnout webovou aplikaci pro rezervaci letenek. Systém musí uživateli umožnit specifikovat požadavek pomocí místa odletu a příletu, data, času, třídy, letecké společnosti apod. Jedno letadlo může létat na více letech, stejně tak mezi dvěmi destinacemi může létat více letadel různých společností.
+            \textbf{Společnost:} silná entita spravující svá letadla a lety.
 
-Zákazník si rezervuje letenku, která může být na několik letů, i různých společností (např. letenka Praha $\rightarrow$ San Francisco s lety Praha $\rightarrow$ Londýn ČSA, Londýn $\rightarrow$ San Francisco British Airways). Systém musí umožnit klientovi tisk letového itineráře, který obsahuje informace o dobách příletů a odletů na jednotlivých letištích.
+            \textbf{Letadlo:} slabá entita spadající pod danou společnost. Atribut typ zahrnuje třídy sedadel, jejich počet a cenu.
 
-Každý typ letadla má různý počet sedadel a jejich rozvržení do tříd. Nemodelujte jednotlivá sedadla. Rezervací může klient zamluvit i více míst v jednom letu. Technická mezipřistání modelovat nemusíte. Systém musí evidovat, která společnost kdy, odkud a kam létá. Cena sedadla v dané třídě může být u každé společnosti jiná, cena letenky je dána součtem cen všech rezervovaných sedadel na všech letech. Pokud klient rezervovanou letenku včas nezaplatí, rezervace se z databáze smaže. 
+            \textbf{Let:} je proveden daným letadlem společnosti. Každý let dodržuje jeden určitý letový režim - existuje pro záznam skutečného času příletu a odletu, například kvůli zpoždění.
 
-\section{Popis datového modelu}
+            \textbf{Letový režim:} pravidelný režim každého letu daného dne tak, jak se zobrazuje při objednávce.
+            
+            \textbf{Letiště:} místo příletu a odletu jednotlivých letů.
+            
+            \textbf{Košík:} tato entita rezervuje zákazníkovi na dané datum požadované letenky.
+            
+            \textbf{Datum:} přesné datum.
 
-\subsection{ER diagram}
-ER diagram obsahuje tyto entity:
-
-\textbf{Let:}
-
-\textbf{Letadlo:}
-
-\textbf{Společnost:}
-
-\textbf{Letiště:}
-
-\textbf{Letový režim:}
-
-\textbf{Košík:}
-
-\textbf{Datum:}
-
- 
-\subsection{Diagram případů užití}
-V diagramu případů užití figuruje několik aktérů.
-
-\textbf{Čas:} systém tedy po uplnyutí určité doby může smazat neuhrazenou rezervaci.
-
-\textbf{Anonymní uživatel:} může se registrovat, čímž se z něj stane klient. Může také vytvořit rezervaci, k čemuž je potřeba zobrazit lety dle daných požadavků. Může tisknout nějaký letový itinerář. Rezervaci může uhradit.
-
-\textbf{Klient:} je rozšířením anonymního uživatele, tedy může vše co on, navíc může své rezervace zrušit, nebo zobrazit – lze zobrazit rezervace buď uhrazené nebo neuhrazené.
-
-\textbf{Správce:} je rozšířením klienta. Navíc může spravovat uživatele (přidat a blokovat), společnosti (přidat ji), letový režim (upravit ho), či autorizovat nějakou operaci v systému.
-
+            \textbf{Zákazník:} uživatel objednávající letenku přes košík.
+            
+             
+        \subsection{Diagram případů užití}
+            
+            V diagramu případů užití figuruje několik aktérů.
+            
+            \textbf{Čas:} systém tedy po uplynutí určité doby může smazat neuhrazenou rezervaci.
+            
+            \textbf{Anonymní uživatel:} může se registrovat, čímž se z něj stane klient. Může také vytvořit rezervaci, k čemuž je potřeba zobrazit lety dle daných požadavků. Může tisknout nějaký letový itinerář. Rezervaci může uhradit.
+            
+            \textbf{Klient:} je rozšířením anonymního uživatele, tedy může vše co on, navíc může své rezervace zrušit, nebo zobrazit – lze zobrazit rezervace buď uhrazené nebo neuhrazené.
+            
+            \textbf{Správce:} je rozšířením klienta. Navíc může spravovat uživatele (přidat a blokovat), společnosti (přidat ji), letový režim (upravit ho), či autorizovat nějakou operaci v systému.
+            
 \end{multicols*}
 
 \begin{figure}[H]
