@@ -14,11 +14,11 @@
 
 DROP TABLE "letiste";
 
--- DROP TABLE "kosik";
+DROP TABLE "kosik";
 
--- DROP TABLE "datum";
+DROP TABLE "datum";
 
--- DROP TABLE "zakaznik";
+DROP TABLE "zakaznik";
 
 -- Create:
 
@@ -44,19 +44,42 @@ CREATE TABLE "letiste" (
     "nazev" VARCHAR(100) NOT NULL
 );
 
--- CREATE TABLE "kosik" (
--- );
---
--- CREATE TABLE "datum" (
--- );
---
--- CREATE TABLE "zakaznik" (
--- );
+CREATE TABLE "zakaznik" (
+    "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
+    "narodnost" VARCHAR(2) NOT NULL
+        CHECK ( LENGTH("narodnost") = 2 ),
+    "jmeno" VARCHAR(100) NOT NULL,
+    "prijmeni" VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE "kosik" (
+    "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
+    "celkova_cena" INT NOT NULL,
+    "zakaznik_id" INT NOT NULL,
+    CONSTRAINT "kosik_zakaznik_id_fk"
+		FOREIGN KEY ("zakaznik_id") REFERENCES "zakaznik" ("id")
+);
+
+
+CREATE TABLE "datum" (
+    "datum" DATE NOT NULL PRIMARY KEY
+        CHECK ( "datum" >= TO_DATE('1970/01/01', 'yyyy/mm/dd') )
+);
 
 -- Insert:
-
-INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
-VALUES ('BRQ', 'CZ', 'Brno', 'Tuřany');
-
-INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
-VALUES ('PRG', 'CZ', 'Prague', 'Letiště Václava Havla')
+--
+-- INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
+-- VALUES ('BRQ', 'CZ', 'Brno', 'Tuřany');
+--
+-- INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
+-- VALUES ('PRG', 'CZ', 'Prague', 'Letiště Václava Havla');
+--
+--
+-- INSERT INTO "datum" ("datum")
+-- VALUES (TO_DATE('2023-03-25', 'yyyy/mm/dd'));
+--
+-- INSERT INTO "datum" ("datum")
+-- VALUES (TO_DATE('2023-03-24', 'yyyy/mm/dd'));
+--
+-- INSERT INTO "datum" ("datum")
+-- VALUES (TO_DATE('2023-03-23', 'yyyy/mm/dd'));
