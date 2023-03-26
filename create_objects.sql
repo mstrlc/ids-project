@@ -132,18 +132,19 @@ CREATE TABLE "zakaznik" (
         CHECK ( LENGTH("narodnost") = 2 ),
     "jmeno" VARCHAR(100) NOT NULL,
     "prijmeni" VARCHAR(100) NOT NULL,
-    "rodne_cislo" VARCHAR(11) DEFAULT NULL,
+    "rodne_cislo" NUMBER(10) DEFAULT NULL,
     "cislo_op" NUMBER(10) DEFAULT NULL
 );
 
-ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rodne_cislo" 
-    CHECK ( REGEXP_LIKE("rodne_cislo", '^[0-9]{6}/[0-9]{3,4}$') );
+ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rc_delitelne" 
+    CHECK ( (MOD("rodne_cislo", 11) = 0) OR ("rodne_cislo" IS NULL) );
 
 CREATE TABLE "kosik" (
     "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
     "celkova_cena" INT NOT NULL,
     "cas_expirace" TIMESTAMP NOT NULL,
-    "stav_uhrady" NUMBER(1) NOT NULL,
+    "stav_uhrady" VARCHAR(20) NOT NULL,
+        CHECK("stav_uhrady" IN ('NEUHRAZENO', 'ZPRACOVAVANI', 'UHRAZENO')),
     "zakaznik_rezervoval_id" INT NOT NULL,
     "na_datum" DATE NOT NULL,
 
@@ -262,13 +263,63 @@ INSERT INTO "datum" ("datum")
 INSERT INTO "datum" ("datum")
     VALUES (TO_DATE('2023-03-29','YYYY-MM-DD'));
 
+INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
+    VALUES (3, TO_DATE('2023-03-26','YYYY-MM-DD'));
+INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
+    VALUES (3, TO_DATE('2023-03-27','YYYY-MM-DD'));
+INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
+    VALUES (1, TO_DATE('2023-03-29','YYYY-MM-DD'));
+INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
+    VALUES (2, TO_DATE('2023-03-27','YYYY-MM-DD'));
+
+
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
-    VALUES ('CZ', 'Petr', 'Novák', '745124/7890');
+    VALUES ('CZ', 'Petr', 'Novák', 7451247837);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
-    VALUES ('CZ', 'Jan', 'Novotný', '873212/9323');
+    VALUES ('CZ', 'Jan', 'Novotný', 8732129230);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
     VALUES ('PL', 'Jan', 'Kowalski', 8329647209);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
     VALUES ('HU', 'János', 'Kovács', 4749234231);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
     VALUES ('SK', 'Ján', 'Novák', 6385653214);
+
+INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "poznamka", "letovy_rezim_letu", "letadlo_seriove_cislo")
+    VALUES ('10:00', '11:00', 'porucha motoru', 1, 6057511439);
+INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "letovy_rezim_letu", "letadlo_seriove_cislo")
+    VALUES ('10:00', '11:00', 2, 1975346982);
+INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "letovy_rezim_letu", "letadlo_seriove_cislo")
+    VALUES ('13:00', '15:00', 3, 8532190546);
+INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "poznamka", "letovy_rezim_letu", "letadlo_seriove_cislo")
+    VALUES ('13:00', '15:00', 'pilot umrel', 1, 1975346982);
+
+INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
+    VALUES (8313, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-29','YYYY-MM-DD'));
+INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
+    VALUES (3123, TO_DATE('2023-03-26','YYYY-MM-DD'), 'UHRAZENO', 1, TO_DATE('2023-03-27','YYYY-MM-DD'));
+INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
+    VALUES (42384, TO_DATE('2023-03-22','YYYY-MM-DD'), 'NEUHRAZENO', 3, TO_DATE('2023-03-28','YYYY-MM-DD'));
+
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (1, 2);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (1, 3);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (1, 4);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (2, 2);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (3, 2);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (3, 1);
+
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (1, 1);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (1, 2);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (2, 3);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (2, 4);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (3, 5);
