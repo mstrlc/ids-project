@@ -36,15 +36,17 @@ DROP TABLE "kosik_rezervuje_let";
 
 CREATE TABLE "spolecnost" (
     "id" VARCHAR(3) NOT NULL PRIMARY KEY,
-    "jmeno" VARCHAR(100) DEFAULT NULL,
-    CHECK ( LENGTH("id") = 3 )
+        CHECK ( LENGTH("id") = 3 ),
+    "jmeno" VARCHAR(100) DEFAULT NULL
 );
 
 -- Oproti ER diagramu je seriove cislo letadla unikatni v ramci celeho systemu.
+-- 1 letadlo muze byt nasazeno na 0..n letu.
 CREATE TABLE "letadlo" (
     "seriove_cislo" INT NOT NULL PRIMARY KEY,
     "typ" VARCHAR(100) DEFAULT NULL,
     "spolecnost_id" VARCHAR(3) NOT NULL,
+
     CONSTRAINT "fk_letadlo_spolecnost_id"
         FOREIGN KEY ("spolecnost_id")
         REFERENCES "spolecnost" ("id")
@@ -60,48 +62,45 @@ CREATE TABLE "letiste" (
     "nazev" VARCHAR(100) NOT NULL
 );
 
--- Oproti ER diagramu je misto priletu a odletu presunuto do letoveho rezimu, letovy rezim dodrzuje 0..n letu. 
+-- Oproti ER diagramu je misto priletu a odletu presunuto do letoveho rezimu,
+-- letovy rezim dodrzuje 0..n letu. 
 CREATE TABLE "letovy_rezim" (
     "id" VARCHAR(7) NOT NULL PRIMARY KEY,
     "pravidelny_cas_priletu" TIMESTAMP NOT NULL,
     "pravidelny_cas_odletu" TIMESTAMP NOT NULL,
     "misto_priletu" VARCHAR(3) NOT NULL,
+    "misto_odletu" VARCHAR(3) NOT NULL,
+    
     CONSTRAINT "fk_letovy_rezim_misto_priletu"
         FOREIGN KEY ("misto_priletu")
         REFERENCES "letiste" ("kod")
         ON DELETE SET NULL,
-    "misto_odletu" VARCHAR(3) NOT NULL,
+
     CONSTRAINT "fk_letovy_rezim_misto_odletu"
         FOREIGN KEY ("misto_odletu")
         REFERENCES "letiste" ("kod")
         ON DELETE SET NULL
 );
 
--- Oproti ER diagramu je cislo letu unikatni v ramci celeho systemu a misto priletu a odletu je presunuto k letovemu rezimu, let dodrzuje 1 letovy rezim.
+-- Oproti ER diagramu je cislo letu unikatni v ramci celeho systemu, misto
+-- priletu a odletu je presunuto k letovemu rezimu, let dodrzuje 1 letovy rezim,
+-- na letu je nasazeno 1 letadlo.
 CREATE TABLE "let" (
     "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
     "skutecny_cas_odletu" TIMESTAMP DEFAULT NULL,
     "skutecny_cas_pristani" TIMESTAMP DEFAULT NULL,
     "poznamka" VARCHAR(100) DEFAULT NULL,
     "letovy_rezim_letu" VARCHAR(7) NOT NULL,
+    "letadlo_seriove_cislo" INT NOT NULL,
+
     CONSTRAINT "fk_let_letovy_rezim_letu"
         FOREIGN KEY ("letovy_rezim_letu")
         REFERENCES "letovy_rezim" ("id")
-        ON DELETE SET NULL
-);
+        ON DELETE SET NULL,
 
-CREATE TABLE "letadlo_leta_let" (
-    "letadlo_seriove_cislo" INT NOT NULL,
-    "let_id" INT NOT NULL,
-    CONSTRAINT "pk_letadlo_leta_let"
-        PRIMARY KEY ("letadlo_seriove_cislo", "let_id"),
-    CONSTRAINT "fk_letadlo_leta_let_letadlo_seriove_cislo"
+    CONSTRAINT "fk_let_letadlo_seriove_cislo"
         FOREIGN KEY ("letadlo_seriove_cislo")
         REFERENCES "letadlo" ("seriove_cislo")
-        ON DELETE SET NULL,
-    CONSTRAINT "fk_letadlo_leta_let_let_id"
-        FOREIGN KEY ("let_id")
-        REFERENCES "let" ("id")
         ON DELETE SET NULL
 );
 
@@ -112,12 +111,15 @@ CREATE TABLE "datum" (
 CREATE TABLE "letovy_rezim_aktivni_v_datum" (
     "letovy_rezim_id" VARCHAR(7) NOT NULL,
     "datum_datum" DATE NOT NULL,
+
     CONSTRAINT "pk_letovy_rezim_aktivni_v_datum"
         PRIMARY KEY ("letovy_rezim_id", "datum_datum"),
+
     CONSTRAINT "fk_letovy_rezim_aktivni_v_datum_letovy_rezim_id"
         FOREIGN KEY ("letovy_rezim_id")
         REFERENCES "letovy_rezim" ("id")
         ON DELETE SET NULL,
+
     CONSTRAINT "fk_letovy_rezim_aktivni_v_datum_datum_datum"
         FOREIGN KEY ("datum_datum")
         REFERENCES "datum" ("datum")
@@ -142,10 +144,12 @@ CREATE TABLE "kosik" (
     "stav_uhrady" NUMBER(1) NOT NULL,
     "zakaznik_rezervoval_id" INT NOT NULL,
     "na_datum" DATE NOT NULL,
+
     CONSTRAINT "fk_kosik_zakaznik_rezervoval_id"
         FOREIGN KEY ("zakaznik_rezervoval_id")
         REFERENCES "zakaznik" ("id")
         ON DELETE CASCADE,
+
     CONSTRAINT "fk_kosik_na_datum" 
         FOREIGN KEY ("na_datum")
         REFERENCES "datum" ("datum")
@@ -155,12 +159,15 @@ CREATE TABLE "kosik" (
 CREATE TABLE "kosik_pro_pasazery" (
     "kosik_id" INT NOT NULL,
     "pasazer_id" INT,
+
     CONSTRAINT "pk_kosik_pro_pasazery"
         PRIMARY KEY ("kosik_id", "pasazer_id"),
+
     CONSTRAINT "fk_kosik_pro_pasazery_kosik_id"
         FOREIGN KEY ("kosik_id")
         REFERENCES "kosik" ("id")
         ON DELETE CASCADE,
+
     CONSTRAINT "fk_kosik_pro_pasazery_pasazer_id"
         FOREIGN KEY ("pasazer_id")
         REFERENCES "zakaznik" ("id")
@@ -170,12 +177,15 @@ CREATE TABLE "kosik_pro_pasazery" (
 CREATE TABLE "kosik_rezervuje_let" (
     "kosik_id" INT NOT NULL,
     "let_id" INT,
+
     CONSTRAINT "pk_kosik_rezervuje_let"
         PRIMARY KEY ("kosik_id", "let_id"),
+
     CONSTRAINT "fk_kosik_rezervuje_let_kosik_id"
         FOREIGN KEY ("kosik_id")
         REFERENCES "kosik" ("id")
         ON DELETE CASCADE,
+
     CONSTRAINT "fk_kosik_rezervuje_let_let_id"
         FOREIGN KEY ("let_id")
         REFERENCES "let" ("id")
