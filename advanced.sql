@@ -61,14 +61,14 @@ CREATE TABLE "letiste" (
 );
 
 -- Oproti ER diagramu je misto priletu a odletu presunuto do letoveho rezimu,
--- letovy rezim dodrzuje 0..n letu. 
+-- letovy rezim dodrzuje 0..n letu.
 CREATE TABLE "letovy_rezim" (
     "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
     "pravidelny_cas_priletu" VARCHAR(5) NOT NULL,
     "pravidelny_cas_odletu" VARCHAR(5) NOT NULL,
     "misto_priletu" VARCHAR(3) NOT NULL,
     "misto_odletu" VARCHAR(3) NOT NULL,
-    
+
     CONSTRAINT "fk_letovy_rezim_misto_priletu"
         FOREIGN KEY ("misto_priletu")
         REFERENCES "letiste" ("kod")
@@ -87,6 +87,7 @@ CREATE TABLE "let" (
     "id" INT GENERATED AS IDENTITY NOT NULL PRIMARY KEY,
     "skutecny_cas_odletu" VARCHAR(5) DEFAULT NULL,
     "skutecny_cas_pristani" VARCHAR(5) DEFAULT NULL,
+    "skutecne_trvani_letu" VARCHAR(100) DEFAULT NULL,
     "poznamka" VARCHAR(100) DEFAULT NULL,
     "letovy_rezim_letu" INT NOT NULL,
     "letadlo_seriove_cislo" INT NOT NULL,
@@ -135,7 +136,7 @@ CREATE TABLE "zakaznik" (
     "cislo_op" NUMBER(10) DEFAULT NULL
 );
 
-ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rc_delitelne" 
+ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rc_delitelne"
     CHECK ( (MOD("rodne_cislo", 11) = 0) OR ("rodne_cislo" IS NULL) );
 
 CREATE TABLE "kosik" (
@@ -152,7 +153,7 @@ CREATE TABLE "kosik" (
         REFERENCES "zakaznik" ("id")
         ON DELETE CASCADE,
 
-    CONSTRAINT "fk_kosik_na_datum" 
+    CONSTRAINT "fk_kosik_na_datum"
         FOREIGN KEY ("na_datum")
         REFERENCES "datum" ("datum")
         ON DELETE CASCADE
@@ -197,6 +198,23 @@ CREATE TABLE "kosik_rezervuje_let" (
         ON DELETE CASCADE
 );
 
+-- Trigger
+CREATE OR REPLACE TRIGGER "skutecne_trvani_letu"
+	BEFORE INSERT ON "let"
+	FOR EACH ROW
+DECLARE
+    odlet TIMESTAMP;
+    pristani TIMESTAMP;
+    trvani INTERVAL DAY TO SECOND;
+    doba_char VARCHAR(100);
+BEGIN
+    odlet := TO_TIMESTAMP(:NEW."skutecny_cas_odletu", 'HH24:MI');
+    pristani := TO_TIMESTAMP(:NEW."skutecny_cas_pristani", 'HH24:MI');
+    trvani := pristani - odlet;
+    doba_char := TO_CHAR(trvani, 'HH24:MI');
+    :NEW."skutecne_trvani_letu" := SUBSTR(doba_char, 9, 2) || ':' || SUBSTR(trvani, 11, 2);
+
+END;
 -- Insert:
 
 INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
@@ -338,25 +356,25 @@ INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
 SELECT * FROM "letadlo" INNER JOIN "spolecnost" ON "letadlo"."spolecnost_id" = "spolecnost"."id" WHERE "id" = 'RYR';
 
 -- Nazev spolecnosti ktera vlastni letadlo Boeing 737 - spojeni dvou tabulek
-SELECT DISTINCT "nazev" FROM "letadlo" INNER JOIN "spolecnost" ON "letadlo"."spolecnost_id" = "spolecnost"."id" WHERE "typ" = 'Boeing 737'; 
+SELECT DISTINCT "nazev" FROM "letadlo" INNER JOIN "spolecnost" ON "letadlo"."spolecnost_id" = "spolecnost"."id" WHERE "typ" = 'Boeing 737';
 
 -- Porovnani skutecneho casu odletu a pravidelneho casu odletu letadla 1975346982 leticich z Prahy (+ duvod spozdeni v poznamce) - spojeni tri tabulek
 SELECT "pravidelny_cas_odletu","skutecny_cas_odletu","poznamka","datum_datum","misto_odletu","misto_priletu","letadlo_seriove_cislo"
-FROM "let" 
+FROM "let"
 JOIN "letovy_rezim" ON "let"."letovy_rezim_letu" = "letovy_rezim"."id"
 JOIN "letovy_rezim_aktivni_v_datum" ON "letovy_rezim"."id" = "letovy_rezim_aktivni_v_datum"."letovy_rezim_id"
 WHERE "misto_odletu" = 'PRG' AND "letadlo_seriove_cislo"='1975346982';
 
 -- Zobrazi id a jmena zakazniku, kteri maji vic jak jednou letenku - dotaz s klauzuli GROUP BY a agregacni funkci
 SELECT "jmeno","prijmeni","zakaznik"."id",COUNT("zakaznik"."id")
-FROM "zakaznik" 
+FROM "zakaznik"
 JOIN "kosik" ON "zakaznik"."id" = "kosik"."zakaznik_rezervoval_id"
 JOIN "kosik_rezervuje_let" ON "kosik"."id" = "kosik_rezervuje_let"."kosik_id"
 GROUP BY "jmeno","prijmeni","zakaznik"."id"
 HAVING COUNT("zakaznik"."id") > 1;
 
 -- Zobrazi nazvy spolecnosti, jejich pocet letu z Prahy a seradi je sestupne - dotaz s klauzuli GROUP BY a agregacni funkci
-SELECT "nazev",COUNT("misto_odletu") AS "pocet_letu_z_prahy" 
+SELECT "nazev",COUNT("misto_odletu") AS "pocet_letu_z_prahy"
 FROM "spolecnost"
 JOIN "letadlo" ON "letadlo"."spolecnost_id" = "spolecnost"."id"
 JOIN "let" ON "let"."letadlo_seriove_cislo" = "letadlo"."seriove_cislo"
@@ -372,7 +390,7 @@ WHERE EXISTS
 (SELECT * FROM "kosik" WHERE "zakaznik"."id" = "kosik"."zakaznik_rezervoval_id" AND "celkova_cena" > 10000);
 
 -- Zobrazi zakazniky, jejichz zeme nema v ramci databaze letiste
-SELECT * 
+SELECT *
 FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
@@ -381,7 +399,7 @@ WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 --Ohodnocuje objednavky na zaklade utracene castky a nasledne vypise jejich pocet
 WITH "hodnoceni_objednavek" AS (
   SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
-         CASE 
+         CASE
            WHEN "celkova_cena" > 30000 THEN 'Velká útrata'
            WHEN "celkova_cena" > 10000 THEN 'Střední útrata'
            ELSE 'Malá útrata'
