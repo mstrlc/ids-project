@@ -376,14 +376,8 @@ SELECT *
 FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
-WITH "objednavky" AS (
-	SELECT "celkova_cena" AS "pokus"
-	FROM "kosik"
-)
-SELECT * FROM "objednavky";
-
 --Cast 4
---dotaz SELECT využívajícíh klauzuli WITH a operátor CASE
+--dotaz SELECT vyuzivajici klauzuli WITH a operator CASE
 --Ohodnocuje objednavky na zaklade utracene castky
 WITH "hodnoceni_objednavek" AS (
   SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
