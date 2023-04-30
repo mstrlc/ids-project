@@ -30,6 +30,8 @@ DROP TABLE "kosik";
 DROP TABLE "kosik_pro_pasazery";
 DROP TABLE "kosik_rezervuje_let";
 
+DROP INDEX "letovy_rezim_index";
+
 -- Create:
 CREATE TABLE "spolecnost" (
     "id" VARCHAR(3) NOT NULL PRIMARY KEY,
@@ -215,6 +217,7 @@ BEGIN
     :NEW."skutecne_trvani_letu" := SUBSTR(doba_char, 9, 2) || ':' || SUBSTR(trvani, 11, 2);
 
 END;
+
 -- Insert:
 
 INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
@@ -267,7 +270,7 @@ INSERT INTO "letadlo" ("seriove_cislo", "typ", "spolecnost_id")
 INSERT INTO "letovy_rezim" ("pravidelny_cas_odletu", "pravidelny_cas_priletu", "misto_odletu", "misto_priletu")
     VALUES ('10:00', '11:00', 'PRG', 'BUD');
 INSERT INTO "letovy_rezim" ("pravidelny_cas_odletu", "pravidelny_cas_priletu", "misto_odletu", "misto_priletu")
-    VALUES ('7:00', '15:00', 'PRG', 'CDG');
+    VALUES ('07:00', '15:00', 'PRG', 'CDG');
 INSERT INTO "letovy_rezim" ("pravidelny_cas_odletu", "pravidelny_cas_priletu", "misto_odletu", "misto_priletu")
     VALUES ('12:00', '13:30', 'BRQ', 'LHR');
 INSERT INTO "letovy_rezim" ("pravidelny_cas_odletu", "pravidelny_cas_priletu", "misto_odletu", "misto_priletu")
@@ -374,7 +377,7 @@ GROUP BY "jmeno","prijmeni","zakaznik"."id"
 HAVING COUNT("zakaznik"."id") > 1;
 
 -- Zobrazi nazvy spolecnosti, jejich pocet letu z Prahy a seradi je sestupne - dotaz s klauzuli GROUP BY a agregacni funkci
-SELECT "nazev",COUNT("misto_odletu") AS "pocet_letu_z_prahy"
+SELECT "nazev", COUNT("misto_odletu") AS "pocet_letu_z_prahy"
 FROM "spolecnost"
 JOIN "letadlo" ON "letadlo"."spolecnost_id" = "spolecnost"."id"
 JOIN "let" ON "let"."letadlo_seriove_cislo" = "letadlo"."seriove_cislo"
@@ -395,6 +398,31 @@ FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
 --Cast 4
+-- Index + Explain plan:
+-- Vybrat letiste odletajici z CZ s odletem po 14. hodine
+
+EXPLAIN PLAN FOR
+    SELECT "id", "pravidelny_cas_odletu", "letiste_odlet"."kod", "letiste_odlet"."zeme",
+           "pravidelny_cas_priletu", "letiste_prilet"."kod", "letiste_prilet"."zeme"
+    FROM "letovy_rezim"
+    JOIN "letiste" "letiste_prilet" ON "letovy_rezim"."misto_priletu" = "letiste_prilet"."kod"
+    JOIN "letiste" "letiste_odlet" ON "letovy_rezim"."misto_odletu" = "letiste_odlet"."kod"
+    WHERE "letiste_odlet"."zeme" = 'CZ'
+    ORDER BY "pravidelny_cas_odletu";
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
+
+CREATE INDEX "letovy_rezim_index" on "letovy_rezim" ("pravidelny_cas_odletu");
+
+EXPLAIN PLAN FOR
+    SELECT "id", "pravidelny_cas_odletu", "letiste_odlet"."kod", "letiste_odlet"."zeme",
+           "pravidelny_cas_priletu", "letiste_prilet"."kod", "letiste_prilet"."zeme"
+    FROM "letovy_rezim"
+    JOIN "letiste" "letiste_prilet" ON "letovy_rezim"."misto_priletu" = "letiste_prilet"."kod"
+    JOIN "letiste" "letiste_odlet" ON "letovy_rezim"."misto_odletu" = "letiste_odlet"."kod"
+    WHERE "letiste_odlet"."zeme" = 'CZ'
+    ORDER BY "pravidelny_cas_odletu";
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
+
 --dotaz SELECT vyuzivajici klauzuli WITH a operator CASE
 --Ohodnocuje objednavky na zaklade utracene castky a nasledne vypise jejich pocet
 WITH "hodnoceni_objednavek" AS (
@@ -415,10 +443,10 @@ ORDER BY "hodnoceni";
 DROP MATERIALIZED VIEW "zakaznici";
 CREATE MATERIALIZED VIEW "zakaznici" AS
 SELECT "jmeno","prijmeni","zakaznik"."id",COUNT("zakaznik"."id") AS "pocet_letenek"
-FROM "zakaznik" 
+FROM "zakaznik"
 JOIN "kosik" ON "zakaznik"."id" = "kosik"."zakaznik_rezervoval_id"
 JOIN "kosik_rezervuje_let" ON "kosik"."id" = "kosik_rezervuje_let"."kosik_id"
-GROUP BY "jmeno","prijmeni","zakaznik"."id"
+GROUP BY "jmeno","prijmeni","zakaznik"."id";
 
 
 SELECT * FROM "zakaznici";
