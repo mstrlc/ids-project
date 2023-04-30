@@ -378,7 +378,7 @@ WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
 --Cast 4
 --dotaz SELECT vyuzivajici klauzuli WITH a operator CASE
---Ohodnocuje objednavky na zaklade utracene castky
+--Ohodnocuje objednavky na zaklade utracene castky a nasledne vypise jejich pocet
 WITH "hodnoceni_objednavek" AS (
   SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
          CASE 
@@ -388,4 +388,7 @@ WITH "hodnoceni_objednavek" AS (
          END AS "hodnoceni"
   FROM "kosik"
 )
-SELECT * FROM "hodnoceni_objednavek";
+SELECT "hodnoceni", COUNT(*) as "pocet"
+FROM "hodnoceni_objednavek"
+GROUP BY "hodnoceni"
+ORDER BY "hodnoceni";
