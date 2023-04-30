@@ -410,3 +410,19 @@ SELECT "hodnoceni", COUNT(*) as "pocet"
 FROM "hodnoceni_objednavek"
 GROUP BY "hodnoceni"
 ORDER BY "hodnoceni";
+
+--MATERIALIZED VIEW
+DROP MATERIALIZED VIEW "zakaznici";
+CREATE MATERIALIZED VIEW "zakaznici" AS
+SELECT "jmeno","prijmeni","zakaznik"."id",COUNT("zakaznik"."id") AS "pocet_letenek"
+FROM "zakaznik" 
+JOIN "kosik" ON "zakaznik"."id" = "kosik"."zakaznik_rezervoval_id"
+JOIN "kosik_rezervuje_let" ON "kosik"."id" = "kosik_rezervuje_let"."kosik_id"
+GROUP BY "jmeno","prijmeni","zakaznik"."id"
+
+
+SELECT * FROM "zakaznici";
+
+UPDATE "zakaznik" SET "prijmeni" = 'Ananas' WHERE "cislo_op" = 8329647209;
+
+SELECT * FROM "zakaznici"; --MATERIALIZED VIEW se neaktualizuje
