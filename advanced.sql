@@ -329,6 +329,8 @@ INSERT INTO "datum" ("datum")
     VALUES (TO_DATE('2023-03-28','YYYY-MM-DD'));
 INSERT INTO "datum" ("datum")
     VALUES (TO_DATE('2023-03-29','YYYY-MM-DD'));
+INSERT INTO "datum" ("datum")
+    VALUES (TO_DATE('2023-03-30','YYYY-MM-DD'));
 
 INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
     VALUES (3, TO_DATE('2023-03-26','YYYY-MM-DD'));
@@ -591,4 +593,20 @@ BEGIN "letadlo_informace"('6057511439'); END;
 
 --------- Definice pristupovych prav ---------
 
--- TODO pristupova prava
+--------- Definice pristupovych prav ---------
+GRANT ALL ON "spolecnost" TO xmrkva04;
+GRANT ALL ON "letadlo" TO xmrkva04;
+GRANT ALL ON "letiste" TO xmrkva04;
+GRANT ALL ON "letovy_rezim" TO xmrkva04;
+GRANT ALL ON "let" TO xmrkva04;
+GRANT ALL ON "datum" TO xmrkva04;
+GRANT ALL ON "zakaznik" TO xmrkva04;
+GRANT ALL ON "kosik" TO xmrkva04;
+GRANT ALL ON "letovy_rezim_aktivni_v_datum" TO xmrkva04;
+GRANT ALL ON "kosik_pro_pasazery" TO xmrkva04;
+GRANT ALL ON "kosik_rezervuje_let" TO xmrkva04;
+
+GRANT EXECUTE ON "vypis_kosiku" to xmrkva04;
+GRANT EXECUTE ON "letadlo_informace" to xmrkva04;
+
+GRANT ALL ON "zakaznici" to xmrkva04;
