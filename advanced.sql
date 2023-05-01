@@ -138,9 +138,7 @@ CREATE TABLE "zakaznik" (
     "jmeno" VARCHAR(100) NOT NULL,
     "prijmeni" VARCHAR(100) NOT NULL,
     "rodne_cislo" NUMBER(10) DEFAULT NULL,
-    "cislo_op" NUMBER(10) DEFAULT NULL,
-    "vek" NUMBER(2) DEFAULT NULL,
-    "vekova_kategorie" VARCHAR(10)
+    "cislo_op" NUMBER(10) DEFAULT NULL
 );
 
 ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rc_delitelne"
@@ -224,40 +222,7 @@ BEGIN
     :NEW."skutecne_trvani_letu" := SUBSTR(doba_char, 9, 2) || ':' || SUBSTR(trvani, 11, 2);
 END;
 
--- Vypocet veku zakaznika a zarazeni do vekove kategorie
-CREATE OR REPLACE TRIGGER "vek_zakaznika"
-    BEFORE INSERT ON "zakaznik"
-    FOR EACH ROW
-DECLARE
-    rok_narozeni NUMBER(2);
-    cely_rok_narozeni NUMBER(4);
-    vek NUMBER(2);
-BEGIN
-    IF :NEW."rodne_cislo" IS NOT NULL THEN
-        rok_narozeni := SUBSTR(:NEW."rodne_cislo", 1, 2);
-
-        IF rok_narozeni > 23 THEN
-            cely_rok_narozeni := 1900 + rok_narozeni;
-        ELSE
-            cely_rok_narozeni := 2000 + rok_narozeni;
-        END IF;
-
-        vek := EXTRACT(YEAR FROM SYSDATE) - cely_rok_narozeni;
-        :NEW."vek" := vek;
-
-        IF vek < 13 THEN
-            :NEW."vekova_kategorie" := 'dite';
-        ELSIF vek < 19 THEN
-            :NEW."vekova_kategorie" := 'junior';
-        ELSIF vek < 26 THEN
-            :NEW."vekova_kategorie" := 'student';
-        ELSIF vek < 65 THEN
-            :NEW."vekova_kategorie" := 'dospely';
-        ELSE
-            :NEW."vekova_kategorie" := 'senior';
-        END IF;
-    END IF;
-END;
+-- TODO dalsi trigger
 
 --------- Vlozeni hodnot ---------
 
@@ -329,6 +294,8 @@ INSERT INTO "datum" ("datum")
     VALUES (TO_DATE('2023-03-28','YYYY-MM-DD'));
 INSERT INTO "datum" ("datum")
     VALUES (TO_DATE('2023-03-29','YYYY-MM-DD'));
+INSERT INTO "datum" ("datum")
+    VALUES (TO_DATE('2023-03-30','YYYY-MM-DD'));
 
 INSERT INTO "letovy_rezim_aktivni_v_datum" ("letovy_rezim_id", "datum_datum")
     VALUES (3, TO_DATE('2023-03-26','YYYY-MM-DD'));
@@ -344,8 +311,6 @@ INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
     VALUES ('CZ', 'Petr', 'Novák', 7451247837);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
     VALUES ('CZ', 'Jan', 'Novotný', 8732129230);
-INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
-    VALUES ('CZ', 'Markéta', 'Novotná', 1102676597);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
     VALUES ('PL', 'Jan', 'Kowalski', 8329647209);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
@@ -367,11 +332,15 @@ INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "poznamka", "
     VALUES ('13:00', '15:00', 'pilot umrel', 1, 1975346982);
 
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
-    VALUES (13465, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-29','YYYY-MM-DD'));
+    VALUES (13465, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-28','YYYY-MM-DD'));
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
     VALUES (3123, TO_DATE('2023-03-26','YYYY-MM-DD'), 'UHRAZENO', 1, TO_DATE('2023-03-27','YYYY-MM-DD'));
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
     VALUES (42384, TO_DATE('2023-03-22','YYYY-MM-DD'), 'NEUHRAZENO', 3, TO_DATE('2023-03-28','YYYY-MM-DD'));
+INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
+    VALUES (5555, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-29','YYYY-MM-DD'));
+INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
+    VALUES (6453, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-30','YYYY-MM-DD'));
 
 INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
     VALUES (1, 2);
@@ -385,6 +354,10 @@ INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
     VALUES (3, 2);
 INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
     VALUES (3, 1);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (4, 4);
+INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
+    VALUES (5, 1);
 
 INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
     VALUES (1, 1);
@@ -396,6 +369,10 @@ INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
     VALUES (2, 4);
 INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
     VALUES (3, 5);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (4, 4);
+INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
+    VALUES (5, 4);
 
 --------- Dotazy SELECT ---------
 
@@ -441,14 +418,12 @@ SELECT *
 FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
--- Predvedeni triggeru "skutecne_trvani_letu" - vypocet skutecneho trvani letu
+-- Predvedeni triggeru
 SELECT "id", "skutecny_cas_odletu", "skutecny_cas_pristani", "skutecne_trvani_letu"
-FROM "let";
+FROM "let"
 
--- Predvedeni triggeru "vek_zakaznika"
-SELECT "jmeno", "prijmeni", "rodne_cislo", "vek", "vekova_kategorie"
-FROM "zakaznik"
-WHERE "rodne_cislo" IS NOT NULL;
+-- TODO Predvedeni triggeru
+
 
 --------- Index a explain plan ---------
 
@@ -515,9 +490,24 @@ UPDATE "zakaznik" SET "prijmeni" = 'Ananas' WHERE "cislo_op" = 8329647209;
 SELECT * FROM "zakaznici";
 
 --------- Netrivialni ulozene procedury ---------
+-- procedura vypisujici seznam kosiku daneho zakaznika
+CREATE OR REPLACE PROCEDURE "vypis_kosiku" ("p_zakaznik_id" INT)
+AS
+  CURSOR "c_kosik" IS
+    SELECT * FROM "kosik" WHERE "zakaznik_rezervoval_id" = "p_zakaznik_id";
+  "v_kosik_row" "kosik"%ROWTYPE;
+BEGIN
+  OPEN "c_kosik";
+  LOOP
+    FETCH "c_kosik" INTO "v_kosik_row";
+    EXIT WHEN "c_kosik"%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek: ' ||"v_kosik_row"."celkova_cena" || '(' || "v_kosik_row"."stav_uhrady" || ')' || ' ' || 'dne: ' || "v_kosik_row"."na_datum");
+  END LOOP;
+  CLOSE "c_kosik";
+END;
+/
 
--- TODO prvni procedura
-
+BEGIN "vypis_kosiku"('4'); END;
 -- TODO druha procedura
 
 --------- Definice pristupovych prav ---------
