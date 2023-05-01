@@ -545,6 +545,9 @@ BEGIN
         DBMS_OUTPUT.PUT_LINE( '  Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
     END LOOP;
     CLOSE "c_kosik";
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Žádné záznamy nebyly nalezeny');
 END;
 
 BEGIN "vypis_kosiku"('1'); END;
@@ -587,6 +590,11 @@ BEGIN
     CLOSE "c_lety";
     prumer := doba / lety;
     DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || ' hodin.');
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Žádné záznamy nebyly nalezeny');
+        WHEN ZERO_DIVIDE THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR - Dělení nulou');
 END;
 
 BEGIN "letadlo_informace"('1975346982'); END;
