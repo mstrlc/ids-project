@@ -138,7 +138,9 @@ CREATE TABLE "zakaznik" (
     "jmeno" VARCHAR(100) NOT NULL,
     "prijmeni" VARCHAR(100) NOT NULL,
     "rodne_cislo" NUMBER(10) DEFAULT NULL,
-    "cislo_op" NUMBER(10) DEFAULT NULL
+    "cislo_op" NUMBER(10) DEFAULT NULL,
+    "vek" NUMBER(2) DEFAULT NULL,
+    "vekova_kategorie" VARCHAR(10)
 );
 
 ALTER TABLE "zakaznik" ADD CONSTRAINT "ck_zakaznik_rc_delitelne"
@@ -222,7 +224,40 @@ BEGIN
     :NEW."skutecne_trvani_letu" := SUBSTR(doba_char, 9, 2) || ':' || SUBSTR(trvani, 11, 2);
 END;
 
--- TODO dalsi trigger
+-- Vypocet veku zakaznika a zarazeni do vekove kategorie
+CREATE OR REPLACE TRIGGER "vek_zakaznika"
+    BEFORE INSERT ON "zakaznik"
+    FOR EACH ROW
+DECLARE
+    rok_narozeni NUMBER(2);
+    cely_rok_narozeni NUMBER(4);
+    vek NUMBER(2);
+BEGIN
+    IF :NEW."rodne_cislo" IS NOT NULL THEN
+        rok_narozeni := SUBSTR(:NEW."rodne_cislo", 1, 2);
+
+        IF rok_narozeni > 23 THEN
+            cely_rok_narozeni := 1900 + rok_narozeni;
+        ELSE
+            cely_rok_narozeni := 2000 + rok_narozeni;
+        END IF;
+
+        vek := EXTRACT(YEAR FROM SYSDATE) - cely_rok_narozeni;
+        :NEW."vek" := vek;
+
+        IF vek < 13 THEN
+            :NEW."vekova_kategorie" := 'dite';
+        ELSIF vek < 19 THEN
+            :NEW."vekova_kategorie" := 'junior';
+        ELSIF vek < 26 THEN
+            :NEW."vekova_kategorie" := 'student';
+        ELSIF vek < 65 THEN
+            :NEW."vekova_kategorie" := 'dospely';
+        ELSE
+            :NEW."vekova_kategorie" := 'senior';
+        END IF;
+    END IF;
+END;
 
 --------- Vlozeni hodnot ---------
 
@@ -309,6 +344,8 @@ INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
     VALUES ('CZ', 'Petr', 'Novák', 7451247837);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
     VALUES ('CZ', 'Jan', 'Novotný', 8732129230);
+INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "rodne_cislo")
+    VALUES ('CZ', 'Markéta', 'Novotná', 1102676597);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
     VALUES ('PL', 'Jan', 'Kowalski', 8329647209);
 INSERT INTO "zakaznik" ("narodnost", "jmeno", "prijmeni", "cislo_op")
@@ -404,12 +441,14 @@ SELECT *
 FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
--- Predvedeni triggeru
+-- Predvedeni triggeru "skutecne_trvani_letu" - vypocet skutecneho trvani letu
 SELECT "id", "skutecny_cas_odletu", "skutecny_cas_pristani", "skutecne_trvani_letu"
-FROM "let"
+FROM "let";
 
--- TODO Predvedeni triggeru
-
+-- Predvedeni triggeru "vek_zakaznika"
+SELECT "jmeno", "prijmeni", "rodne_cislo", "vek", "vekova_kategorie"
+FROM "zakaznik"
+WHERE "rodne_cislo" IS NOT NULL;
 
 --------- Index a explain plan ---------
 
