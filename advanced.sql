@@ -399,8 +399,10 @@ WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
 --Cast 4
 -- Index + Explain plan:
--- Vybrat letiste odletajici z CZ s odletem po 14. hodine
+-- Vybrat lety odletajici z letiste v CZ s odletem po 10. hodine
+ DROP INDEX "letovy_rezim_index";
 
+-- cpu_cost = 32.461.436, io_cost = 9, total_cost=10.0
 EXPLAIN PLAN FOR
     SELECT "id", "pravidelny_cas_odletu", "letiste_odlet"."kod", "letiste_odlet"."zeme",
            "pravidelny_cas_priletu", "letiste_prilet"."kod", "letiste_prilet"."zeme"
@@ -408,11 +410,13 @@ EXPLAIN PLAN FOR
     JOIN "letiste" "letiste_prilet" ON "letovy_rezim"."misto_priletu" = "letiste_prilet"."kod"
     JOIN "letiste" "letiste_odlet" ON "letovy_rezim"."misto_odletu" = "letiste_odlet"."kod"
     WHERE "letiste_odlet"."zeme" = 'CZ'
+    AND TO_DATE("pravidelny_cas_odletu", 'HH24:MI') > TO_DATE('10:00', 'HH24:MI')
     ORDER BY "pravidelny_cas_odletu";
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 CREATE INDEX "letovy_rezim_index" on "letovy_rezim" ("pravidelny_cas_odletu");
 
+-- cpu_cost = 85.913, io_cost = 9, total_cost=10.0
 EXPLAIN PLAN FOR
     SELECT "id", "pravidelny_cas_odletu", "letiste_odlet"."kod", "letiste_odlet"."zeme",
            "pravidelny_cas_priletu", "letiste_prilet"."kod", "letiste_prilet"."zeme"
@@ -420,6 +424,7 @@ EXPLAIN PLAN FOR
     JOIN "letiste" "letiste_prilet" ON "letovy_rezim"."misto_priletu" = "letiste_prilet"."kod"
     JOIN "letiste" "letiste_odlet" ON "letovy_rezim"."misto_odletu" = "letiste_odlet"."kod"
     WHERE "letiste_odlet"."zeme" = 'CZ'
+    AND TO_DATE("pravidelny_cas_odletu", 'HH24:MI') > TO_DATE('10:00', 'HH24:MI')
     ORDER BY "pravidelny_cas_odletu";
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
