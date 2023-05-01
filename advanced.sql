@@ -542,11 +542,12 @@ BEGIN
     LOOP
         FETCH "c_kosik" INTO "v_kosik_row";
         EXIT WHEN "c_kosik"%NOTFOUND;
-        DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
+        DBMS_OUTPUT.PUT_LINE( '  Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
     END LOOP;
     CLOSE "c_kosik";
 END;
 
+BEGIN "vypis_kosiku"('1'); END;
 BEGIN "vypis_kosiku"('4'); END;
 
 -- Procedura vypisujici historii letadla pro servisni ucely
@@ -585,7 +586,7 @@ BEGIN
     END LOOP;
     CLOSE "c_lety";
     prumer := doba / lety;
-    DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || '.');
+    DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || ' hodin.');
 END;
 
 BEGIN "letadlo_informace"('1975346982'); END;
@@ -593,7 +594,6 @@ BEGIN "letadlo_informace"('6057511439'); END;
 
 --------- Definice pristupovych prav ---------
 
---------- Definice pristupovych prav ---------
 GRANT ALL ON "spolecnost" TO xmrkva04;
 GRANT ALL ON "letadlo" TO xmrkva04;
 GRANT ALL ON "letiste" TO xmrkva04;
