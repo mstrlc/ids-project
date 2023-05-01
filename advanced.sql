@@ -209,8 +209,8 @@ CREATE TABLE "kosik_rezervuje_let" (
 
 -- Vypocet letove doby letu
 CREATE OR REPLACE TRIGGER "skutecne_trvani_letu"
-	BEFORE INSERT ON "let"
-	FOR EACH ROW
+    BEFORE INSERT ON "let"
+    FOR EACH ROW
 DECLARE
     odlet TIMESTAMP;
     pristani TIMESTAMP;
@@ -496,14 +496,14 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
 -- Klasifikace objednavek na zaklade utracene castky a vypsani jejich poctu
 WITH "klasifikace_objednavek" AS (
-  SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
-         CASE
-           WHEN "celkova_cena" > 30000 THEN 'Velká útrata'
-           WHEN "celkova_cena" > 10000 THEN 'Střední útrata'
-           ELSE 'Malá útrata'
-         END AS "klasifikace"
-  FROM "kosik"
-)
+    SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
+        CASE
+            WHEN "celkova_cena" > 30000 THEN 'Velká útrata'
+            WHEN "celkova_cena" > 10000 THEN 'Střední útrata'
+            ELSE 'Malá útrata'
+        END AS "klasifikace"
+    FROM "kosik"
+    )
 SELECT "klasifikace", COUNT(*) as "pocet"
 FROM "klasifikace_objednavek"
 GROUP BY "klasifikace"
@@ -531,21 +531,20 @@ SELECT * FROM "zakaznici";
 -- Procedura vypisujici seznam kosiku daneho zakaznika
 CREATE OR REPLACE PROCEDURE "vypis_kosiku" ("p_zakaznik_id" INT)
 AS
-  CURSOR "c_kosik" IS
+    CURSOR "c_kosik" IS
     SELECT * FROM "kosik" WHERE "zakaznik_rezervoval_id" = "p_zakaznik_id";
-  "v_kosik_row" "kosik"%ROWTYPE;
+    "v_kosik_row" "kosik"%ROWTYPE;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('Informace o košících uživatele ' || "p_zakaznik_id");
-  OPEN "c_kosik";
-  LOOP
-    FETCH "c_kosik" INTO "v_kosik_row";
-    EXIT WHEN "c_kosik"%NOTFOUND;
-    DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
-  END LOOP;
-  CLOSE "c_kosik";
+    OPEN "c_kosik";
+    LOOP
+        FETCH "c_kosik" INTO "v_kosik_row";
+        EXIT WHEN "c_kosik"%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
+    END LOOP;
+    CLOSE "c_kosik";
 END;
 
-BEGIN "vypis_kosiku"('1'); END;
 BEGIN "vypis_kosiku"('4'); END;
 
 -- Procedura vypisujici historii letadla pro servisni ucely
@@ -553,42 +552,38 @@ CREATE OR REPLACE PROCEDURE "letadlo_informace" ("p_letadlo_seriove_cislo" INT)
 AS
   CURSOR "c_lety" IS
     SELECT "let"."id" as "let_id", "skutecny_cas_odletu", "skutecny_cas_pristani",
-           "skutecne_trvani_letu", "poznamka", "typ", "spolecnost_id","misto_odletu",
-           "misto_priletu"
+            "skutecne_trvani_letu", "poznamka", "typ", "spolecnost_id","misto_odletu",
+            "misto_priletu"
     FROM "let"
     JOIN "letadlo" ON "letadlo"."seriove_cislo" = "let"."letadlo_seriove_cislo"
     JOIN "letovy_rezim" ON "let"."letovy_rezim_letu" = "letovy_rezim"."id"
     WHERE "letadlo"."seriove_cislo" = "p_letadlo_seriove_cislo";
-  "v_lety_row" "c_lety"%ROWTYPE;
-  lety NUMBER;
+    "v_lety_row" "c_lety"%ROWTYPE;
+    lety NUMBER;
     doba NUMBER;
     prumer NUMBER;
 BEGIN
-  OPEN "c_lety";
-  FETCH "c_lety" INTO "v_lety_row";
-  DBMS_OUTPUT.PUT_LINE('Servisni informace o letadle ' || "p_letadlo_seriove_cislo" || ', Typ ' || "v_lety_row"."typ"
-  || ', Provozovano aerolinkou ' || "v_lety_row"."spolecnost_id" || '.');
-  lety := 0;
-  doba := 0.0;
-  LOOP
-    EXIT WHEN "c_lety"%NOTFOUND;
-    -- add 1 to lety number
-    lety := lety + 1;
-    -- add time to doba
-    -- time is a VARCHAR HH:MM, convert to NUMBER
-    doba := doba + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", 1, INSTR("v_lety_row"."skutecne_trvani_letu", ':')-1))
-                 + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", INSTR("v_lety_row"."skutecne_trvani_letu", ':')+1))/60;
-    DBMS_OUTPUT.PUT_LINE( '  ID letu: ' || "v_lety_row"."let_id" || '. ' ||
-                          'Odlet z ' || "v_lety_row"."misto_odletu" || ' v ' || "v_lety_row"."skutecny_cas_odletu" ||
-                          ', Prilet do ' || "v_lety_row"."misto_priletu" || ' v ' || "v_lety_row"."skutecny_cas_pristani" ||
-                          ', Doba letu ' || "v_lety_row"."skutecne_trvani_letu");
+    OPEN "c_lety";
+    FETCH "c_lety" INTO "v_lety_row";
+    DBMS_OUTPUT.PUT_LINE('Servisni informace o letadle ' || "p_letadlo_seriove_cislo" || ', Typ ' || "v_lety_row"."typ"
+                        || ', Provozovano aerolinkou ' || "v_lety_row"."spolecnost_id" || '.');
+    lety := 0;
+    doba := 0.0;
+    LOOP
+        EXIT WHEN "c_lety"%NOTFOUND;
+        lety := lety + 1;
+        doba := doba + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", 1, INSTR("v_lety_row"."skutecne_trvani_letu", ':')-1))
+                    + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", INSTR("v_lety_row"."skutecne_trvani_letu", ':')+1))/60;
+        DBMS_OUTPUT.PUT_LINE( '  ID letu: ' || "v_lety_row"."let_id" || '. ' ||
+                            'Odlet z ' || "v_lety_row"."misto_odletu" || ' v ' || "v_lety_row"."skutecny_cas_odletu" ||
+                            ', Prilet do ' || "v_lety_row"."misto_priletu" || ' v ' || "v_lety_row"."skutecny_cas_pristani" ||
+                            ', Doba letu ' || "v_lety_row"."skutecne_trvani_letu");
 
-      FETCH "c_lety" INTO "v_lety_row";
-  END LOOP;
-  CLOSE "c_lety";
-    -- calculate average
+        FETCH "c_lety" INTO "v_lety_row";
+    END LOOP;
+    CLOSE "c_lety";
     prumer := doba / lety;
-    DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || ' hodin.');
+    DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || '.');
 END;
 
 BEGIN "letadlo_informace"('1975346982'); END;
