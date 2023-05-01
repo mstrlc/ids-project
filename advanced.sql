@@ -1,8 +1,8 @@
--- IDS projekt 2022
+-- IDS projekt 2023
 -- Cast 4 - SQL skript pro vytvoření pokročilých objektů schématu databáze
 -- Autor: xmrkva04 & xstrel03
 
--- Drop:
+--------- Drop ---------
 
 ALTER TABLE "letadlo" DROP CONSTRAINT "fk_letadlo_spolecnost_id";
 ALTER TABLE "letovy_rezim" DROP CONSTRAINT "fk_letovy_rezim_misto_priletu";
@@ -32,7 +32,10 @@ DROP TABLE "kosik_rezervuje_let";
 
 DROP INDEX "letovy_rezim_index";
 
--- Create:
+DROP MATERIALIZED VIEW "zakaznici";
+
+--------- Vytvoreni tabulek ---------
+
 CREATE TABLE "spolecnost" (
     "id" VARCHAR(3) NOT NULL PRIMARY KEY,
         CHECK ( LENGTH("id") <= 3 ),
@@ -200,7 +203,9 @@ CREATE TABLE "kosik_rezervuje_let" (
         ON DELETE CASCADE
 );
 
--- Trigger
+--------- Netrivialni triggery ---------
+
+-- Vypocet letove doby letu
 CREATE OR REPLACE TRIGGER "skutecne_trvani_letu"
 	BEFORE INSERT ON "let"
 	FOR EACH ROW
@@ -215,10 +220,11 @@ BEGIN
     trvani := pristani - odlet;
     doba_char := TO_CHAR(trvani, 'HH24:MI');
     :NEW."skutecne_trvani_letu" := SUBSTR(doba_char, 9, 2) || ':' || SUBSTR(trvani, 11, 2);
-
 END;
 
--- Insert:
+-- TODO dalsi trigger
+
+--------- Vlozeni hodnot ---------
 
 INSERT INTO "letiste" ("kod", "zeme", "mesto", "nazev")
     VALUES ('PRG', 'CZ', 'Praha', 'Václav Havel Airport Prague');
@@ -354,7 +360,8 @@ INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
 INSERT INTO "kosik_pro_pasazery" ("kosik_id", "pasazer_id")
     VALUES (3, 5);
 
--- SELECT
+--------- Dotazy SELECT ---------
+
 -- Letadla provozovane firmou Ryanair - spojeni dvou tabulek
 SELECT * FROM "letadlo" INNER JOIN "spolecnost" ON "letadlo"."spolecnost_id" = "spolecnost"."id" WHERE "id" = 'RYR';
 
@@ -397,11 +404,16 @@ SELECT *
 FROM "zakaznik"
 WHERE "narodnost" NOT IN (SELECT "zeme" FROM "letiste");
 
---Cast 4
--- Index + Explain plan:
--- Vybrat lety odletajici z letiste v CZ s odletem po 10. hodine
- DROP INDEX "letovy_rezim_index";
+-- Predvedeni triggeru
+SELECT "id", "skutecny_cas_odletu", "skutecny_cas_pristani", "skutecne_trvani_letu"
+FROM "let"
 
+-- TODO Predvedeni triggeru
+
+
+--------- Index a explain plan ---------
+
+-- Vybrat lety odletajici z letiste v CZ s odletem po 10. hodine
 -- cpu_cost = 32.461.436, io_cost = 9, total_cost=10.0
 EXPLAIN PLAN FOR
     SELECT "id", "pravidelny_cas_odletu", "letiste_odlet"."kod", "letiste_odlet"."zeme",
@@ -414,6 +426,7 @@ EXPLAIN PLAN FOR
     ORDER BY "pravidelny_cas_odletu";
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
+-- Vytvoreni indexu na sloupci "pravidelny_cas_odletu" tabulky "letovy_rezim"
 CREATE INDEX "letovy_rezim_index" on "letovy_rezim" ("pravidelny_cas_odletu");
 
 -- cpu_cost = 85.913, io_cost = 9, total_cost=10.0
@@ -428,24 +441,25 @@ EXPLAIN PLAN FOR
     ORDER BY "pravidelny_cas_odletu";
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY);
 
---dotaz SELECT vyuzivajici klauzuli WITH a operator CASE
---Ohodnocuje objednavky na zaklade utracene castky a nasledne vypise jejich pocet
-WITH "hodnoceni_objednavek" AS (
+--------- Netrivialni dotaz select s CASE a WITH ---------
+
+-- Klasifikace objednavek na zaklade utracene castky a vypsani jejich poctu
+WITH "klasifikace_objednavek" AS (
   SELECT "celkova_cena","zakaznik_rezervoval_id", "na_datum",
          CASE
            WHEN "celkova_cena" > 30000 THEN 'Velká útrata'
            WHEN "celkova_cena" > 10000 THEN 'Střední útrata'
            ELSE 'Malá útrata'
-         END AS "hodnoceni"
+         END AS "klasifikace"
   FROM "kosik"
 )
-SELECT "hodnoceni", COUNT(*) as "pocet"
-FROM "hodnoceni_objednavek"
-GROUP BY "hodnoceni"
-ORDER BY "hodnoceni";
+SELECT "klasifikace", COUNT(*) as "pocet"
+FROM "klasifikace_objednavek"
+GROUP BY "klasifikace"
+ORDER BY "klasifikace";
 
---MATERIALIZED VIEW
-DROP MATERIALIZED VIEW "zakaznici";
+--------- Materializovany pohled ---------
+
 CREATE MATERIALIZED VIEW "zakaznici" AS
 SELECT "jmeno","prijmeni","zakaznik"."id",COUNT("zakaznik"."id") AS "pocet_letenek"
 FROM "zakaznik"
@@ -453,9 +467,20 @@ JOIN "kosik" ON "zakaznik"."id" = "kosik"."zakaznik_rezervoval_id"
 JOIN "kosik_rezervuje_let" ON "kosik"."id" = "kosik_rezervuje_let"."kosik_id"
 GROUP BY "jmeno","prijmeni","zakaznik"."id";
 
-
+-- Vypis pred zmenou zakaznika
 SELECT * FROM "zakaznici";
 
 UPDATE "zakaznik" SET "prijmeni" = 'Ananas' WHERE "cislo_op" = 8329647209;
 
-SELECT * FROM "zakaznici"; --MATERIALIZED VIEW se neaktualizuje
+-- Vypis po zmene - materialized view se neaktualizuje
+SELECT * FROM "zakaznici";
+
+--------- Netrivialni ulozene procedury ---------
+
+-- TODO prvni procedura
+
+-- TODO druha procedura
+
+--------- Definice pristupovych prav ---------
+
+-- TODO pristupova prava
