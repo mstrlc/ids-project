@@ -367,7 +367,7 @@ INSERT INTO "let" ("skutecny_cas_odletu", "skutecny_cas_pristani", "poznamka", "
     VALUES ('13:00', '15:00', 'pilot umrel', 1, 1975346982);
 
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
-    VALUES (13465, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-28','YYYY-MM-DD'));
+    VALUES (13465, TO_DATE('2023-03-24','YYYY-MM-DD'), 'NEUHRAZENO', 4, TO_DATE('2023-03-28','YYYY-MM-DD'));
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
     VALUES (3123, TO_DATE('2023-03-26','YYYY-MM-DD'), 'UHRAZENO', 1, TO_DATE('2023-03-27','YYYY-MM-DD'));
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
@@ -375,7 +375,7 @@ INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_re
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
     VALUES (5555, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-29','YYYY-MM-DD'));
 INSERT INTO "kosik" ("celkova_cena", "cas_expirace", "stav_uhrady", "zakaznik_rezervoval_id", "na_datum")
-    VALUES (6453, TO_DATE('2023-03-24','YYYY-MM-DD'), 'ZPRACOVAVANI', 4, TO_DATE('2023-03-30','YYYY-MM-DD'));
+    VALUES (6453, TO_DATE('2023-03-24','YYYY-MM-DD'), 'UHRAZENO', 4, TO_DATE('2023-03-30','YYYY-MM-DD'));
 
 INSERT INTO "kosik_rezervuje_let" ("kosik_id", "let_id")
     VALUES (1, 2);
@@ -527,25 +527,72 @@ UPDATE "zakaznik" SET "prijmeni" = 'Ananas' WHERE "cislo_op" = 8329647209;
 SELECT * FROM "zakaznici";
 
 --------- Netrivialni ulozene procedury ---------
--- procedura vypisujici seznam kosiku daneho zakaznika
+
+-- Procedura vypisujici seznam kosiku daneho zakaznika
 CREATE OR REPLACE PROCEDURE "vypis_kosiku" ("p_zakaznik_id" INT)
 AS
   CURSOR "c_kosik" IS
     SELECT * FROM "kosik" WHERE "zakaznik_rezervoval_id" = "p_zakaznik_id";
   "v_kosik_row" "kosik"%ROWTYPE;
 BEGIN
+    DBMS_OUTPUT.PUT_LINE('Informace o košících uživatele ' || "p_zakaznik_id");
   OPEN "c_kosik";
   LOOP
     FETCH "c_kosik" INTO "v_kosik_row";
     EXIT WHEN "c_kosik"%NOTFOUND;
-    DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek: ' ||"v_kosik_row"."celkova_cena" || '(' || "v_kosik_row"."stav_uhrady" || ')' || ' ' || 'dne: ' || "v_kosik_row"."na_datum");
+    DBMS_OUTPUT.PUT_LINE( 'Celková cena letenek CZK ' || "v_kosik_row"."celkova_cena" || ', ve stavu ' || "v_kosik_row"."stav_uhrady" || '. Na datum: ' || "v_kosik_row"."na_datum" || '.');
   END LOOP;
   CLOSE "c_kosik";
 END;
 
-BEGIN "vypis_kosiku"('2'); END;
+BEGIN "vypis_kosiku"('1'); END;
+BEGIN "vypis_kosiku"('4'); END;
 
--- TODO druha procedura
+-- Procedura vypisujici historii letadla pro servisni ucely
+CREATE OR REPLACE PROCEDURE "letadlo_informace" ("p_letadlo_seriove_cislo" INT)
+AS
+  CURSOR "c_lety" IS
+    SELECT "let"."id" as "let_id", "skutecny_cas_odletu", "skutecny_cas_pristani",
+           "skutecne_trvani_letu", "poznamka", "typ", "spolecnost_id","misto_odletu",
+           "misto_priletu"
+    FROM "let"
+    JOIN "letadlo" ON "letadlo"."seriove_cislo" = "let"."letadlo_seriove_cislo"
+    JOIN "letovy_rezim" ON "let"."letovy_rezim_letu" = "letovy_rezim"."id"
+    WHERE "letadlo"."seriove_cislo" = "p_letadlo_seriove_cislo";
+  "v_lety_row" "c_lety"%ROWTYPE;
+  lety NUMBER;
+    doba NUMBER;
+    prumer NUMBER;
+BEGIN
+  OPEN "c_lety";
+  FETCH "c_lety" INTO "v_lety_row";
+  DBMS_OUTPUT.PUT_LINE('Servisni informace o letadle ' || "p_letadlo_seriove_cislo" || ', Typ ' || "v_lety_row"."typ"
+  || ', Provozovano aerolinkou ' || "v_lety_row"."spolecnost_id" || '.');
+  lety := 0;
+  doba := 0.0;
+  LOOP
+    EXIT WHEN "c_lety"%NOTFOUND;
+    -- add 1 to lety number
+    lety := lety + 1;
+    -- add time to doba
+    -- time is a VARCHAR HH:MM, convert to NUMBER
+    doba := doba + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", 1, INSTR("v_lety_row"."skutecne_trvani_letu", ':')-1))
+                 + TO_NUMBER(SUBSTR("v_lety_row"."skutecne_trvani_letu", INSTR("v_lety_row"."skutecne_trvani_letu", ':')+1))/60;
+    DBMS_OUTPUT.PUT_LINE( '  ID letu: ' || "v_lety_row"."let_id" || '. ' ||
+                          'Odlet z ' || "v_lety_row"."misto_odletu" || ' v ' || "v_lety_row"."skutecny_cas_odletu" ||
+                          ', Prilet do ' || "v_lety_row"."misto_priletu" || ' v ' || "v_lety_row"."skutecny_cas_pristani" ||
+                          ', Doba letu ' || "v_lety_row"."skutecne_trvani_letu");
+
+      FETCH "c_lety" INTO "v_lety_row";
+  END LOOP;
+  CLOSE "c_lety";
+    -- calculate average
+    prumer := doba / lety;
+    DBMS_OUTPUT.PUT_LINE('Celkem letu: ' || lety || ', Celkova doba letu: ' || doba || ' hodin, Prumerne trvani letu: ' || prumer || ' hodin.');
+END;
+
+BEGIN "letadlo_informace"('1975346982'); END;
+BEGIN "letadlo_informace"('6057511439'); END;
 
 --------- Definice pristupovych prav ---------
 
